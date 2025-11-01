@@ -1,0 +1,617 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-1.1.x", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String      @id @default(uuid())
+  email       String      @unique
+  password    String?
+  name        String
+  phoneNumber String      @unique
+  country     CountryCode @default(EG)
+  role        Role
+  status      UserStatus  @default(ACTIVE)
+  isVerified  Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  // OAuth fields
+  googleId                                String?        @unique
+  profilePicture                          String?
+  authProvider                            AuthProvider   @default(EMAIL)
+  Client                                  Client?
+  Freelancer                              Freelancer?
+  refreshTokens                           RefreshToken[]
+  Message_Message_receiverIdToUser        Message[]      @relation("Message_receiverIdToUser")
+  Message_Message_senderIdToUser          Message[]      @relation("Message_senderIdToUser")
+  Conversation_Conversation_user1IdToUser Conversation[] @relation("Conversation_user1IdToUser")
+  Conversation_Conversation_user2IdToUser Conversation[] @relation("Conversation_user2IdToUser")
+
+  wallet Wallet?
+
+  // Media service relations
+  verificationDocuments VerificationDocument[]
+  jobAssets             JobAsset[]
+  chatAttachments       ChatAttachment[]
+  mediaFiles            MediaFile[]
+}
+
+enum CountryCode {
+  EG // Egypt
+  SA // Saudi Arabia
+  AE // United Arab Emirates
+  KW // Kuwait
+  QA // Qatar
+  BH // Bahrain
+  OM // Oman
+  JO // Jordan
+  LB // Lebanon
+  IQ // Iraq
+  SY // Syria
+  PS // Palestine
+  YE // Yemen
+  MA // Morocco
+  DZ // Algeria
+  TN // Tunisia
+  LY // Libya
+  SD // Sudan
+  MR // Mauritania
+  SO // Somalia
+  DJ // Djibouti
+  PK // Pakistan
+  ID // Indonesia
+  TR // Turkey
+  IR // Iran
+}
+
+model RefreshToken {
+  id String @id @default(uuid())
+
+  token String @unique
+
+  expiresAt DateTime
+
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Conversation {
+  id            String   @id @default(uuid())
+  user1Id       String // First participant (always the smaller user ID)
+  user2Id       String // Second participant (always the larger user ID)
+  lastMessageId String?  @unique // Reference to last message (unique for one-to-one relation)
+  lastActivity  DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  user1       User             @relation("Conversation_user1IdToUser", fields: [user1Id], references: [id])
+  user2       User             @relation("Conversation_user2IdToUser", fields: [user2Id], references: [id])
+  messages    Message[]
+  lastMessage Message?         @relation("ConversationLastMessage", fields: [lastMessageId], references: [id])
+  attachments ChatAttachment[]
+
+  // Ensure unique conversation between two users
+  @@unique([user1Id, user2Id])
+  @@index([user1Id, lastActivity])
+  @@index([user2Id, lastActivity])
+  @@index([lastActivity])
+}
+
+model Message {
+  id             String    @id @default(uuid())
+  conversationId String
+  senderId       String
+  receiverId     String
+  content        String
+  timestamp      DateTime  @default(now())
+  readAt         DateTime? // Read receipt timestamp
+
+  // Relations
+  conversation       Conversation     @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender             User             @relation("Message_senderIdToUser", fields: [senderId], references: [id])
+  receiver           User             @relation("Message_receiverIdToUser", fields: [receiverId], references: [id])
+  ConversationAsLast Conversation?    @relation("ConversationLastMessage")
+  attachments        ChatAttachment[]
+
+  // Indexes for efficient queries
+  @@index([conversationId, timestamp])
+  @@index([receiverId, readAt])
+  @@index([senderId, timestamp])
+}
+
+model Otp {
+  id          String    @id @default(cuid())
+  email       String
+  otp         String
+  type        OtpType
+  status      OtpStatus @default(PENDING)
+  userId      String?
+  attempts    Int       @default(0)
+  metadata    Json?
+  expiresAt   DateTime
+  createdAt   DateTime  @default(now())
+  verifiedAt  DateTime?
+  lastAttempt DateTime?
+
+  @@index([email, type, status])
+  @@index([expiresAt])
+}
+
+model Client {
+  id          String     @id @default(uuid())
+  userId      String     @unique
+  fullName    String
+  companyName String?
+  bio         String?
+  website     String?
+  location    String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  user        User       @relation(fields: [userId], references: [id])
+  contracts   Contract[]
+  jobs        Job[]
+}
+
+model Job {
+  id          String     @id @default(uuid())
+  clientId    String
+  title       String
+  description String
+  budget      Float
+  category    String
+  status      JobStatus  @default(OPEN)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  contract    Contract?
+  client      Client     @relation(fields: [clientId], references: [id])
+  proposals   Proposal[]
+  assets      JobAsset[]
+
+  // Indexes for browse jobs performance
+  @@index([status, createdAt(sort: Desc)])
+  @@index([category, status])
+  @@index([budget, status])
+  @@index([status, budget, createdAt(sort: Desc)])
+  @@index([category, budget, status])
+}
+
+model Contract {
+  id           String         @id @default(uuid())
+  clientId     String
+  freelancerId String
+  jobId        String         @unique
+  proposalId   String?        @unique
+  amount       Float
+  currency     String         @default("USD")
+  totalPaid    Float          @default(0)
+  status       ContractStatus @default(PENDING)
+  startDate    DateTime
+  endDate      DateTime?
+  submittedAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  client     Client         @relation(fields: [clientId], references: [id])
+  freelancer Freelancer     @relation(fields: [freelancerId], references: [id])
+  job        Job            @relation(fields: [jobId], references: [id])
+  proposal   Proposal?      @relation(fields: [proposalId], references: [id])
+  milestones Milestone[]
+  payments   Payment[]
+  reviewId   String?
+  review     Review?
+  escrow     EscrowAccount?
+
+  @@index([freelancerId, status])
+  @@index([clientId, status])
+}
+
+model Milestone {
+  id                  String          @id @default(uuid())
+  contractId          String
+  title               String
+  description         String?
+  amount              Float
+  currency            String          @default("USD")
+  dueDate             DateTime?
+  status              MilestoneStatus @default(PENDING)
+  submittedAt         DateTime?
+  approvedAt          DateTime?
+  paidAt              DateTime?
+  disputedAt          DateTime?
+  deletionRequestedAt DateTime?
+  sequence            Int
+  submissionUrl       String?
+  escrowTransactionId String?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  contract            Contract        @relation(fields: [contractId], references: [id])
+}
+
+enum MilestoneStatus {
+  PENDING
+  IN_PROGRESS
+  SUBMITTED
+  APPROVED
+  PAID
+  DISPUTED
+  CANCELED
+  COMPLETED
+  REJECTED
+}
+
+model Freelancer {
+  id              String          @id @default(uuid())
+  userId          String          @unique
+  fullName        String
+  hourlyRate      Float?
+  experienceLevel ExperienceLevel
+  bio             String?
+  profilePicture  String?
+  isAvailable     Boolean         @default(true)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  contracts       Contract[]
+  user            User            @relation(fields: [userId], references: [id])
+  portfolioLinks  PortfolioLink[]
+  proposals       Proposal[]
+  reviews         Review[]
+  skills          Skill[]         @relation("FreelancerSkills")
+  withdrawals     Withdrawal[]
+}
+
+model Skill {
+  id          String       @id @default(uuid())
+  name        String
+  freelancers Freelancer[] @relation("FreelancerSkills")
+}
+
+model PortfolioLink {
+  id           String     @id @default(uuid())
+  title        String
+  description  String?
+  imageUrls    String[]
+  githubUrl    String?
+  liveUrl      String?
+  freelancerId String
+  freelancer   Freelancer @relation(fields: [freelancerId], references: [id])
+}
+
+model Proposal {
+  id           String         @id @default(uuid())
+  freelancerId String
+  jobId        String
+  coverLetter  String
+  proposedRate Float
+  createdAt    DateTime       @default(now())
+  freelancer   Freelancer     @relation(fields: [freelancerId], references: [id])
+  job          Job            @relation(fields: [jobId], references: [id])
+  status       ProposalStatus @default(PENDING)
+  contract     Contract?
+}
+
+enum ProposalStatus {
+  PENDING
+  INTERVIEWING
+  ACCEPTED
+  DECLINED
+}
+
+model Payment {
+  id         String        @id @default(uuid())
+  contractId String        @unique
+  amount     Int           @default(0)
+  status     PaymentStatus @default(PENDING)
+  method     String? // لاحقًا ممكن تكون STRIPE, PAYPAL, etc
+  paidAt     DateTime?
+  providerId String? // معرف الدفع من مزود الخدمة
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  contract Contract @relation(fields: [contractId], references: [id])
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+model EscrowAccount {
+  id            String       @id @default(uuid())
+  contractId    String       @unique @map("contract_id") // مرتبط بالعقد
+  clientId      String       @map("client_id")
+  freelancerId  String       @map("freelancer_id")
+  heldAmount    Int          @default(0) @map("held_amount")
+  initialAmount Int          @default(0) @map("initial_amount") // المبلغ الإجمالي بالقرش
+  status        EscrowStatus @default(ACTIVE)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  contract     Contract            @relation(fields: [contractId], references: [id])
+  transactions EscrowTransaction[]
+
+  @@index([contractId])
+  @@index([freelancerId, status])
+  @@index([clientId, status])
+  @@map("escrow_accounts")
+}
+
+enum EscrowStatus {
+  ACTIVE // الأموال مجمدة
+  COMPLETED // تم صرف كل الأموال للمستقل
+  CANCELED // تم إلغاء العقد (قد تتطلب رد أموال)
+}
+
+model EscrowTransaction {
+  id                  String                @id @default(uuid())
+  escrowAccountId     String
+  amount              Int // بالقرش
+  type                EscrowTransactionType
+  description         String?
+  sourceWalletId      String? // معرف محفظة العميل الذي أودع (لـ DEPOSIT)
+  destinationWalletId String? // معرف محفظة المستقل الذي استلم (لـ RELEASE/REFUND)
+  createdAt           DateTime              @default(now())
+
+  escrowAccount EscrowAccount @relation(fields: [escrowAccountId], references: [id])
+
+  @@index([escrowAccountId])
+}
+
+enum EscrowTransactionType {
+  DEPOSIT
+  RELEASE
+  REFUND
+}
+
+model Wallet {
+  id               String   @id @default(uuid())
+  userId           String   @unique
+  availableBalance Int      @default(0) @map("available_balance")
+  pendingBalance   Int      @default(0) @map("pending_balance")
+  updatedAt        DateTime @updatedAt
+  createdAt        DateTime @default(now())
+
+  user         User                @relation(fields: [userId], references: [id])
+  transactions WalletTransaction[]
+}
+
+model Withdrawal {
+  id           String           @id @default(uuid())
+  freelancerId String
+  amount       Float
+  status       WithdrawalStatus @default(PENDING)
+  requestedAt  DateTime         @default(now())
+  processedAt  DateTime?
+  method       String? // PAYPAL, BANK, etc
+  notes        String? // للمراجعة أو سبب الرفض
+
+  freelancer Freelancer @relation(fields: [freelancerId], references: [id])
+
+  @@index([status, requestedAt])
+}
+
+enum WithdrawalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  COMPLETED
+}
+
+model WalletTransaction {
+  id          String          @id @default(uuid())
+  walletId    String
+  amount      Int // بالقرش
+  type        TransactionType
+  relatedId   String? // ممكن تكون Payment ID، Withdrawal ID، إلخ
+  relatedType String? // "ESCROW_RELEASE" | "WITHDRAWAL" | "REFUND"
+  metadata    Json? // لو حبيت تخزن حاجة إضافية
+  createdAt   DateTime        @default(now())
+
+  wallet Wallet @relation(fields: [walletId], references: [id])
+
+  @@index([walletId, createdAt])
+}
+
+enum TransactionType {
+  DEPOSIT
+  WITHDRAWAL
+  HOLD
+  RELEASE
+  ADJUSTMENT
+}
+
+model Review {
+  id           String     @id @default(uuid())
+  contractId   String     @unique
+  rating       Int
+  feedback     String?
+  createdAt    DateTime   @default(now())
+  freelancerId String
+  contract     Contract   @relation(fields: [contractId], references: [id])
+  freelancer   Freelancer @relation(fields: [freelancerId], references: [id])
+
+  @@index([freelancerId])
+}
+
+enum Role {
+  CLIENT
+  FREELANCER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  BANNED
+}
+
+enum OtpType {
+  PASSWORD_RESET
+  EMAIL_VERIFICATION
+  TWO_FACTOR_AUTH
+  ACCOUNT_VERIFICATION
+}
+
+enum OtpStatus {
+  PENDING
+  VERIFIED
+  EXPIRED
+  USED
+}
+
+enum JobStatus {
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+  CANCELED
+}
+
+enum ContractStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+  DISPUTED
+  TERMINATED
+  REVIEW_PENDING
+}
+
+enum ExperienceLevel {
+  JUNIOR
+  MID
+  SENIOR
+}
+
+enum AuthProvider {
+  EMAIL
+  GOOGLE
+}
+
+model VerificationDocument {
+  id              String              @id @default(uuid())
+  userId          String
+  docType         VerificationDocType
+  fileName        String // R2 object key
+  originalName    String
+  fileType        String
+  fileSize        Int
+  status          VerificationStatus  @default(PENDING)
+  uploadedAt      DateTime            @default(now())
+  reviewedAt      DateTime?
+  reviewedBy      String? // Admin user ID
+  rejectionReason String? // Reason for rejection
+  adminNotes      String? // Additional notes from admin
+  metadata        Json? // Additional metadata
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, docType]) // Each user can have only one doc per type
+  @@index([userId, status])
+  @@index([status, uploadedAt])
+  @@index([status, reviewedAt])
+}
+
+model JobAsset {
+  id           String   @id @default(uuid())
+  userId       String // Owner of the file
+  jobId        String? // Can be null for draft jobs
+  fileName     String // R2 object key
+  originalName String
+  fileType     String
+  fileSize     Int
+  category     String? // e.g., 'requirements', 'reference', 'mockup'
+  isPublic     Boolean  @default(false)
+  url          String? // Public URL if isPublic is true
+  uploadedAt   DateTime @default(now())
+  metadata     Json? // Additional metadata
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job  Job? @relation(fields: [jobId], references: [id], onDelete: SetNull)
+
+  @@index([userId, jobId])
+  @@index([jobId, isPublic])
+  @@index([uploadedAt])
+}
+
+model ChatAttachment {
+  id           String   @id @default(uuid())
+  userId       String // Uploader
+  chatId       String // Reference to conversation
+  messageId    String? // Reference to specific message
+  fileName     String // R2 object key
+  originalName String
+  fileType     String
+  fileSize     Int
+  url          String // Internal URL for serving
+  uploadedAt   DateTime @default(now())
+  metadata     Json? // Additional metadata
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversation Conversation @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  message      Message?     @relation(fields: [messageId], references: [id], onDelete: SetNull)
+
+  @@index([chatId, uploadedAt])
+  @@index([userId, uploadedAt])
+  @@index([messageId])
+}
+
+model MediaFile {
+  id           String          @id @default(uuid())
+  userId       String // Owner of the file
+  fileName     String // R2 object key
+  originalName String
+  fileType     String
+  fileSize     Int
+  uploadType   MediaUploadType
+  category     String?
+  isPublic     Boolean         @default(false)
+  url          String? // Public URL if isPublic is true
+  uploadedAt   DateTime        @default(now())
+  metadata     Json? // Additional metadata
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, uploadType])
+  @@index([uploadType, isPublic])
+  @@index([uploadedAt])
+}
+
+enum VerificationDocType {
+  FRONT // Front of ID
+  BACK // Back of ID
+  SELFIE // Selfie with ID
+}
+
+enum VerificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+enum MediaUploadType {
+  VERIFICATION
+  JOB
+  CHAT
+  PROFILE
+  OTHER
+}

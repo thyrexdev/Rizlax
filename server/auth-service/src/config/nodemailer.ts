@@ -1,10 +1,9 @@
-import nodemailer from "nodemailer";
-import { env } from "@vync/config";
+import nodemailer from 'nodemailer'
 
 export const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
-    user: env.EMAIL_FROM,
-    pass: env.EMAIL_PASSWORD,
+    user: process.env.EMAIL_FROM,
+    pass: process.env.EMAIL_PASSWORD,
   },
 });

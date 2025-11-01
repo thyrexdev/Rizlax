@@ -1,0 +1,13 @@
+{
+  "name": "db-client",
+  "packageManager": "yarn@4.9.2",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@prisma/client": "6.16.3"
+  }
+}

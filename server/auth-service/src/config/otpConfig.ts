@@ -1,4 +1,4 @@
-import { OtpEmailType } from "../utils/sendOtpEmail";
+import { OtpEmailType } from "../utils/sendOtpEmail.ts";
 
 interface OtpConfig {
   length: number;

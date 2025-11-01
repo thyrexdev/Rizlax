@@ -1,12 +1,14 @@
-import { env } from "@vync/config";
-import { transporter } from "../config/nodemailer";
+import { transporter } from "../config/nodemailer.ts";
 
-export enum OtpEmailType {
-  PASSWORD_RESET = 'PASSWORD_RESET',
-  EMAIL_VERIFICATION = 'EMAIL_VERIFICATION',
-  TWO_FACTOR_AUTH = 'TWO_FACTOR_AUTH',
-  ACCOUNT_VERIFICATION = 'ACCOUNT_VERIFICATION'
-}
+export const OtpEmailType = {
+  PASSWORD_RESET: 'PASSWORD_RESET',
+  EMAIL_VERIFICATION: 'EMAIL_VERIFICATION',
+  TWO_FACTOR_AUTH: 'TWO_FACTOR_AUTH',
+  ACCOUNT_VERIFICATION: 'ACCOUNT_VERIFICATION'
+} as const; 
+
+export type OtpEmailType = (typeof OtpEmailType)[keyof typeof OtpEmailType];
+
 
 const getEmailTemplate = (type: OtpEmailType, otp: string) => {
   const templates = {
@@ -72,7 +74,7 @@ export const sendOtpEmail = async (to: string, otp: string, type: OtpEmailType =
   const template = getEmailTemplate(type, otp);
 
   await transporter.sendMail({
-    from: `"Vync" <${env.EMAIL_FROM}>`,
+    from: `"Vync" <${process.env.EMAIL_FROM}>`,
     to,
     subject: template.subject,
     html: template.html,

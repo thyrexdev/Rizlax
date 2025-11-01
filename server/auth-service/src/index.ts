@@ -1,46 +1,56 @@
-import { Hono } from 'hono';
-import { cors } from 'hono/cors';
-import { env } from '@vync/config';
-import authRoutes from './routes/auth.routes';
-import otpRoutes from './routes/otp.routes';
-import clientRoutes from './routes/client.routes';
-import freelancerRoutes from './routes/freelancer.routes';
-import oauthRoutes from './routes/oauth.routes';
+import dotenv from "dotenv";
+import App from "./core/App.ts";
+import { connectDB } from "db-client/index.ts";
+import logger from "logs/index.ts";
+import AuthService from "./services/Auth.ts";
+import ProfileService from "./services/Profile.ts";
+import OtpService from "./services/Otp.ts";
+import OAuthService from "./services/OAuth.ts";
+import AuthController from "./controllers/Auth.ts";
+import OtpController from "./controllers/Otp.ts";
+import OAuthController from "./controllers/OAuth.ts";
+import createAuthRouter from "./routes/Auth.ts";
+import createOAuthRouter from "./routes/OAuth.ts";
+import createOtpRouter from "./routes/Otp.ts";
 
-const app = new Hono();
+dotenv.config({ path: "../../.env" });
 
-// Enable CORS for all routes
-app.use('*', cors({
-  origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
-  credentials: true,
-  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowHeaders: ['Content-Type', 'Authorization'],
-}));
+const PORT = parseInt(process.env.PORT || "3000", 10);
 
-app.route('/auth', authRoutes);
-app.route('/oauth', oauthRoutes);
-app.route('/otp', otpRoutes);
-app.route('/client', clientRoutes);
-app.route('/freelancer', freelancerRoutes);
-
-// Token verification endpoint for other services
-app.post('/verify-token', async (c) => {
-  const authHeader = c.req.header('Authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return c.json({ error: 'Missing or invalid authorization header' }, 401);
-  }
-
-  const token = authHeader.replace('Bearer ', '');
+async function startServer() {
   try {
-    const { getUserFromToken } = await import('@vync/shared');
-    const user = await getUserFromToken(token);
-    return c.json(user, 200);
-  } catch (error: any) {
-    return c.json({ error: 'Invalid token' }, 401);
-  }
-});
+    console.log("Starting Auth Service dependency setup...");
 
-export default {
-  port: env.AUTH_SERVICE_PORT,
-  fetch: app.fetch,
-};
+    const profileService = new ProfileService();
+    const otpService = new OtpService();
+
+    const authService = new AuthService(profileService);
+    const oauthService = new OAuthService(authService);
+
+    const authController = new AuthController(authService);
+    const otpController = new OtpController(otpService);
+    const oauthController = new OAuthController(oauthService);
+
+    const authRouter = createAuthRouter(authController);
+    const otpRouter = createOtpRouter(otpController);
+    const oauthRouter = createOAuthRouter(oauthController);
+
+    const routers = [
+      { path: "/api/auth", router: authRouter },
+      { path: "/api/oauth", router: oauthRouter },
+      { path: "/api/otp", router: otpRouter },
+    ];
+
+    console.log("Connecting to database...");
+    await connectDB();
+    console.log("Database connected successfully.");
+    const server = new App(PORT, routers);
+
+    server.listen();
+  } catch (error) {
+    logger.error("Auth Service failed to start:", { error });
+    console.error("Auth Service failed to start:", error);
+    process.exit(1);
+  }
+}
+startServer();
