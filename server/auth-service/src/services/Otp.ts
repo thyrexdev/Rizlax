@@ -1,8 +1,8 @@
-import { prisma } from "db-client/index.ts";
+import { prisma } from "@rizlax/db-client";
 import { generateOtp } from "../utils/generateOtp.ts";
 import { sendOtpEmail, OtpEmailType } from "../utils/sendOtpEmail.ts";
 import { OTP_CONFIGS } from "../config/otpConfig.ts";
-import logger from "logs/index.ts";
+import logger from "@rizlax/logs";
 
 interface CreateAndSendOtpResult {
   message: string;

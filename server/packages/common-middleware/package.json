@@ -1,0 +1,12 @@
+{
+  "name": "@rizlax/common-middleware",
+  "packageManager": "yarn@4.9.2",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "index.ts",
+  "types": "index.d.ts",
+  "dependencies": {
+    "express": "5.1.0",
+    "jsonwebtoken": "^9.0.2"
+  }
+}

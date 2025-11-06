@@ -1,0 +1,1 @@
+{"root":["./src/index.ts","./src/servers/api.server.ts","./src/servers/socket.server.ts","./src/services/presence.service.ts","./src/tests/socket-test.ts","./src/tests/token-test.ts"],"errors":true,"version":"5.9.3"}

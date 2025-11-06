@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "CommonJS",
+    "rootDir": ".",
+    "outDir": "dist",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "baseUrl": ".",
+    "paths": {
+      "@rizlax/db-client/*": ["packages/db-client/src/*"],
+      "@rizlax/logs/*": ["packages/logs/*"],
+      "@rizlax/redis/*": ["packages/redis/*"],
+      "@rizlax/common-middleware/*": ["packages/common-middleware/src/*"]
+    }
+  }
+}

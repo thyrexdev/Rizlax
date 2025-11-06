@@ -1,5 +1,5 @@
-import { prisma } from "db-client/index.ts";
-import logger from "logs/index.ts";
+import { prisma } from "@rizlax/db-client";
+import logger from "@rizlax/logs";
 import AuthService from "./Auth.ts";
 import type { User } from "@prisma/client";
 

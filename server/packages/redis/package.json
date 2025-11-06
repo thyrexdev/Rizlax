@@ -1,0 +1,16 @@
+{
+  "name": "@rizlax/redis",
+  "packageManager": "yarn@4.9.2",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "index.ts",
+  "types": "index.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "redis": "^5.9.0",
+    "tsc": "^2.0.4",
+    "typescript": "^5.9.3"
+  }
+}

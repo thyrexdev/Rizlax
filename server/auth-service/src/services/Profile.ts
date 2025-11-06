@@ -1,5 +1,5 @@
-import { prisma } from "db-client/index.ts";
-import logger from "logs/index.ts";
+import { prisma } from "@rizlax/db-client";
+import logger from "@rizlax/logs";
 import type { User, Prisma } from "@prisma/client";
 
 type TransactionClient = Prisma.TransactionClient;

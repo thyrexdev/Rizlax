@@ -1,6 +1,6 @@
 import { Router } from "express";
 import AuthController from "../controllers/Auth.ts";
-import { AuthGuard } from "common-middleware/src/AuthGuard.ts";
+import { AuthGuard } from "@rizlax/common-middleware";
 
 interface IAuthController {
   register: typeof AuthController.prototype.register;

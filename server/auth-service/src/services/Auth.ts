@@ -1,7 +1,7 @@
 import * as argon2 from "argon2";
 import jwt from "jsonwebtoken";
-import { prisma } from "db-client/index.ts";
-import logger from "logs/index.ts";
+import { prisma } from "@rizlax/db-client";
+import logger from "@rizlax/logs";
 import type { User, Prisma, AuthProvider } from "@prisma/client";
 import ProfileService from "./Profile.ts";
 

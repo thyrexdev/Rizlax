@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { AuthGuard } from "common-middleware/src/AuthGuard.ts"; 
+import { AuthGuard } from "@rizlax/common-middleware"
 import  JobController  from "../controllers/Job.ts"
 
 interface IJobController {

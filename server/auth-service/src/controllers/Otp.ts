@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
-import logger from "logs/index.ts";
+import logger from "@rizlax/logs";
 import OtpService from "../services/Otp.ts";
 import { OtpEmailType } from "../utils/sendOtpEmail.ts";
 

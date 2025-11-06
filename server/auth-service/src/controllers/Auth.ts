@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import AuthService from "../services/Auth.ts";
-import logger from "logs/index.ts";
+import logger from "@rizlax/logs";
 
 interface IAuthService {
   register: typeof AuthService.prototype.register;

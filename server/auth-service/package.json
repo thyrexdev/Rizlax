@@ -4,7 +4,7 @@
   "main": "src/index.ts",
   "type": "module",
   "scripts": {
-    "dev": "nodemon",
+    "dev": "nodemon --exec 'yarn ts-node' src/index.ts",
     "build": "tsc",
     "start": "node ./dist/index.js",
     "test": "jest --runInBand --detectOpenHandles",
@@ -12,12 +12,12 @@
     "test:coverage": "jest --coverage"
   },
   "dependencies": {
+    "@rizlax/common-middleware": "workspace:^",
+    "@rizlax/db-client": "workspace:^",
     "argon2": "^0.44.0",
     "axios": "^1.12.2",
-    "common-middleware": "workspace:^",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
-    "db-client": "workspace:^",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",

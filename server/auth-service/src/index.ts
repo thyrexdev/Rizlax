@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 import App from "./core/App.ts";
-import { connectDB } from "db-client/index.ts";
-import logger from "logs/index.ts";
+import { connectDB } from "@rizlax/db-client";
+import logger from "@rizlax/logs";
 import AuthService from "./services/Auth.ts";
 import ProfileService from "./services/Profile.ts";
 import OtpService from "./services/Otp.ts";

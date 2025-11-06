@@ -1,0 +1,22 @@
+{
+  "private": true,
+  "packageManager": "yarn@4.9.2",
+  "name": "rizlax-monorepo",
+  "version": "1.0.0",
+  "scripts": {
+    "db:generate": "prisma generate --schema packages/db-client/prisma/schema.prisma",
+    "db:migrate": "prisma migrate dev --schema packages/db-client/prisma/schema.prisma",
+    "db:studio": "dotenv -e packages/db-client/.env prisma studio --schema packages/db-client/prisma/schema.prisma",
+    "build": "yarn workspaces foreach run build",
+    "dev": "yarn workspaces foreach --parallel run dev"
+  },
+  "workspaces": [
+    "packages/*",
+    "auth-service",
+    "contract-service",
+    "escrow-wallet-service",
+    "job-service",
+    "presence-service",
+    "profile-service"
+  ]
+}

@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express'; // استخدام Express Types
 import axios from 'axios'; 
 import OAuthService from '../services/OAuth.ts'; 
-import logger from 'logs/index.ts'; 
+import logger from '@rizlax/logs'; 
 
 interface AuthenticatedRequest extends Request {
   user?: {
